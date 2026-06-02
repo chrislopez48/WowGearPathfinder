@@ -337,6 +337,15 @@ def get_gear_path(character_class: str, spec: str, level: int):
             
     matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) 
 
+    best_gear={}
+
+    for item in maching_items:
+        slot = item["slot"]
+
+        if slot not in best_gear:
+            best_gear[slot] = item
+
+
     return {
         "character_class": character_class.title(),
         "spec": spec,
