@@ -55,19 +55,55 @@ STAT_WEIGHTS = {
     },
 }
 
-def calculate_item_score(item: dict, character_class: str) -> float:
-    stats = item.get("stats", {})
+def calculate_item_score(item: dict, character_class: str, spec: str) -> float:
+    class_weights = STAT_WEIGHTS.get(character_class.title())
 
-    class_name = character_class.title()
-    weights = STAT_WEIGHTS.get(class_name, {})
+    if not class_weights:
+        return 0
 
-    item_score = 0
+    spec_weights = class_weights.get(spec.title())
 
-    for stat_name, stat_value in stats.items():
-        stat_weight = weights.get(stat_name, 1.0)
-        item_score += stat_value * stat_weight
+    if not spec_weights:
+        return 0
 
-    return round(item_score, 2)
+    score = 0
+
+    for stat_name, stat_value in item["stats"].items():
+        weight = spec_weights.get(stat_name, 0)
+        score += stat_value * weight
+
+    return score
+
+STAT_COLUMNS = [
+    "strength",
+    "stamina",
+    "crit",
+    "agility",
+    "intellect",
+    "spirit",
+    "spell_power",
+    "spell_hit",
+    "spell_crit",
+    "healing_power",
+    "mp5",
+    "hit",
+    "defense",
+    "dodge",
+    "parry",
+    "block_value"
+]
+
+
+def load_item_stats(row: dict) -> dict[str, int]:
+    stats = {}
+
+    for stat_name in STAT_COLUMNS:
+        stat_value = row.get(stat_name, "")
+
+        if stat_value != "":
+            stats[stat_name] = int(stat_value)
+
+    return stats
 
 def load_gear_items():
     items = []
@@ -86,11 +122,7 @@ def load_gear_items():
                 "source_name": row["source_name"],
                 "zone": row["zone"],
                 "classes": row["classes"].split("|"),
-                "stats": {
-                    "strength": int(row["strength"]),
-                    "stamina": int(row["stamina"]),
-                    "crit": int(row["crit"])
-                }
+                "stats": load_item_stats(row)
             }
             items.append(item)
     return items
@@ -302,7 +334,8 @@ def get_gear_path(character_class: str, spec: str, level: int):
 
             matching_items.append(item_with_score)
 
-            matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) 
+            
+    matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) 
 
     return {
         "character_class": character_class.title(),
