@@ -1,0 +1,4 @@
+id,name,slot,item_type,required_level,source_type,source_name,zone,classes,strength,stamina,crit
+1,Hellreaver,Two-Hand,Polearm,60,Dungeon,Hellfire Ramparts,Hellfire Peninsula,"Warrior|Paladin|Hunter",23,33,21
+2,Fel Iron Plate Belt,Waist,Plate,58,Crafting,Blacksmithing,Outland,"Warrior|Paladin",18,18,0
+3,Expedition Scout's Epaulets,Shoulder,Mail,58,Quest,The Legion Reborn,Hellfire Peninsula,"Hunter|Shaman",0,22,15
