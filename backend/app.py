@@ -9,7 +9,7 @@ import csv
 app = FastAPI(title="WoW TBC Gear Path Finder")
 
 
-class GearItem(BaseModel):                  #pydantic model; strict typing
+class GearItem(BaseModel):                  #pydantic model; strict typing, thingsMUST be certrain var types
     id: int
     name: str
     slot: str
@@ -98,10 +98,10 @@ def load_item_stats(row: dict) -> dict[str, int]:
     stats = {}
 
     for stat_name in STAT_COLUMNS:
-        stat_value = row.get(stat_name, "")
+        stat_value = row.get(stat_name, "")                 #stat value = whatever stat name we pull
 
         if stat_value != "":
-            stats[stat_name] = int(stat_value)
+            stats[stat_name] = int(stat_value)               #'23' conveted to 23
 
     return stats
 
@@ -322,20 +322,20 @@ def score_item(item: dict, character_class: str, spec: str) -> float:
     return round(score, 2)
 
 @app.get("/gear-path")
-def get_gear_path(character_class: str, spec: str, level: int):
+def get_gear_path(character_class: str, spec: str, level: int):                     #values turn into paladin, ret, 60
     matching_items = []
 
     for item in gear_items:
-        class_matches = character_class.title() in item["classes"]
-        level_matches = item["required_level"] <= level
+        class_matches = character_class.title() in item["classes"]                  #title makes first letter cap, rest lowercase. Paladin=paladin
+        level_matches = item["required_level"] <= level                             #these two lines create booleans/ stores true if class matches above
 
         if class_matches and level_matches:
-            item_with_score = {**item, "item_score": score_item(item, character_class, spec)}
+            item_with_score = {**item, "item_score": score_item(item, character_class, spec)}    #**item copies whole hellreaver dictionary over
 
-            matching_items.append(item_with_score)
+            matching_items.append(item_with_score)                                  #add item to list
 
             
-    matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) 
+    matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) sort gear by score. reverse=true highest score comes first
 
     best_gear={}
 
