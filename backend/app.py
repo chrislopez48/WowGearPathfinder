@@ -3,10 +3,17 @@
 #docker start/stop wow-api-container
 from fastapi import FastAPI
 from pydantic import BaseModel
+from pathlib import Path
 
 import csv
 
-app = FastAPI(title="WoW TBC Gear Path Finder")
+DATA_DIR = Path(__file__).parent / "data"               #points to our backend/data
+GEAR_ITEMS_FILE = DATA_DIR / "gear_items.csv"          
+
+API_NAME = "Wow TBC Gear Path Finder"
+API_VERSION = "0.2.0"
+
+app = FastAPI(title = API_NAME, version = API_VERSION)
 
 
 class GearItem(BaseModel):                  #pydantic model; strict typing, thingsMUST be certrain var types
@@ -21,58 +28,6 @@ class GearItem(BaseModel):                  #pydantic model; strict typing, thin
     classes: list[str]
     stats: dict[str, int]
 
-STAT_WEIGHTS = {
-    "Warrior": {
-        "strength": 1.5,
-        "stamina": 1.0,
-        "crit": 1.2,
-        "agility": 0.8,
-        "intellect": 0.1,
-        "spell_power": 0.0,
-    },
-    "Paladin": {
-        "strength": 1.3,
-        "stamina": 1.0,
-        "crit": 1.1,
-        "intellect": 0.7,
-        "spell_power": 0.8,
-        "agility": 0.3,
-    },
-    "Hunter": {
-        "agility": 1.5,
-        "stamina": 1.0,
-        "crit": 1.2,
-        "strength": 0.4,
-        "intellect": 0.6,
-    },
-    "Mage": {
-        "intellect": 1.5,
-        "stamina": 0.8,
-        "spell_power": 1.6,
-        "crit": 1.1,
-        "strength": 0.0,
-        "agility": 0.0,
-    },
-}
-
-def calculate_item_score(item: dict, character_class: str, spec: str) -> float:
-    class_weights = STAT_WEIGHTS.get(character_class.title())
-
-    if not class_weights:
-        return 0
-
-    spec_weights = class_weights.get(spec.title())
-
-    if not spec_weights:
-        return 0
-
-    score = 0
-
-    for stat_name, stat_value in item["stats"].items():
-        weight = spec_weights.get(stat_name, 0)
-        score += stat_value * weight
-
-    return score
 
 STAT_COLUMNS = [
     "strength",
@@ -107,11 +62,19 @@ def load_item_stats(row: dict) -> dict[str, int]:
 
 def load_gear_items():
     items = []
+    seen_ids = set()
 
-    with open("data/gear_items.csv", mode="r", encoding="utf-8") as file:
+    with open(GEAR_ITEMS_FILE, mode="r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
 
         for row in reader:
+            item_id = int(row["id"])
+
+            if item_id in seen_ids:
+                continue
+
+            seen_ids.add(item_id)
+            
             item = {
                 "id": int(row["id"]),                                           #1 from csv is not an int, convert it to int here
                 "name": row["name"],
@@ -208,9 +171,32 @@ SPEC_STAT_WEIGHTS = {
     },
 }
 
+@app.get("/")
+def root():
+    return {
+        "message": "WoW TBC Gear Path Finder API",
+        "version": API_VERSION,
+        "docs": "/docs",
+        "health": "/health",
+        "gear_path": "/gear-path"
+    }
+
+@app.get("/version")
+def version():
+    return {
+        "api_name": API_NAME,
+        "api_version": API_VERSION
+    }
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}                        #http://127.0.0.1:8000/health
+    return {
+        "status": "ok",
+        "api_name": API_NAME,
+        "api_version": API_VERSION,
+        "gear_items_loaded": len(gear_items),
+        "data_file": GEAR_ITEMS_FILE.name
+    }                        #http://127.0.0.1:8000/health
 
 
 @app.get("/items")
@@ -258,43 +244,7 @@ def search_items(
         "count": len(results),
         "items": results
     }
-    matching_items = []
-
-    for item in gear_items:
-        # Start by assuming the item matches
-        matches = True
-
-        # If the user gave a class, check if the item works for that class
-        if character_class is not None:
-            if character_class.title() not in item["classes"]:
-                matches = False
-
-        # If the user gave a level, check if the item is usable at that level
-        if level is not None:
-            if item["required_level"] > level:
-                matches = False
-
-        # If the user gave a slot, check if the item belongs in that gear slot
-        if slot is not None:
-            if slot.lower() not in item["slot"].lower():
-                matches = False
-
-        # If the user gave a source, check where the item comes from
-        if source is not None:
-            if item["source"].lower() != source.lower():
-                matches = False
-
-        # Only add the item if it passed all filters
-        if matches:
-            matching_items.append(item)
-
-    return {
-        "count": len(matching_items),
-        "items": matching_items
-    }
-
-
-
+    
 @app.get("/items/{item_id}")
 def get_item(item_id: int):
     for item in gear_items:
@@ -303,6 +253,16 @@ def get_item(item_id: int):
 
     return {"error": "Item not found"}
 
+@app.get("/filters")
+def get_filters():
+    
+    return {
+        "slots": get_available_slots(),
+        "source_types": get_available_source_types(),
+        "classes": get_available_classes(),
+        "stats": get_available_stats(),
+        "specs_by_class": get_available_specs_by_class()
+    }
 
 def score_item(item: dict, character_class: str, spec: str) -> float:
     stats = item["stats"]
@@ -321,112 +281,218 @@ def score_item(item: dict, character_class: str, spec: str) -> float:
 
     return round(score, 2)
 
-@app.get("/gear-path")
-def get_gear_path(character_class: str, spec: str, level: int):                     #values turn into paladin, ret, 60
+def count_items_by_source_type(items: list[dict]) -> dict:
+    source_counts = {}
+
+    for item in items:
+        source_type = item["source_type"]
+
+        if source_type not in source_counts:
+            source_counts[source_type] = 0
+
+        source_counts[source_type] += 1
+
+    return source_counts
+
+def item_matches_filters(item: dict, character_class: str, level: int, slot: str | None=None, source_type: str | None=None):
+    class_matches = character_class.title() in item["classes"]
+    level_matches = item["required_level"] <= level
+    slot_matches = slot is None or item["slot"].lower() ==slot.lower()
+    source_matches = source_type is None or item["source_type"].lower() == source_type.lower()
+
+    return class_matches and level_matches and slot_matches and source_matches
+
+def group_top_items_by_slot(items: list[dict], top_n: int):
+    gear_by_slot = {}
+
+    for item in items:
+        item_slot = item["slot"]
+
+        if item_slot not in gear_by_slot:
+            gear_by_slot[item_slot] = []
+
+        if len(gear_by_slot[item_slot]) < top_n:
+            gear_by_slot[item_slot].append(item)
+
+    return gear_by_slot
+
+def sort_items_by_score(items: list[dict]) -> list[dict]:
+    items.sort( key=lambda item: item["item_score"], reverse=True)
+
+    return items
+def add_item_score(item: dict, character_class: str, spec: str) -> dict:
+    return {
+        **item,
+        "item_score": score_item(item, character_class, spec)
+    }
+
+def build_gear_path(character_class: str, spec: str, level: int, slot: str | None=None, source_type: str | None = None, top_n: int = 3):                     #values turn into paladin, ret, 60
     matching_items = []
 
     for item in gear_items:
-        class_matches = character_class.title() in item["classes"]                  #title makes first letter cap, rest lowercase. Paladin=paladin
-        level_matches = item["required_level"] <= level                             #these two lines create booleans/ stores true if class matches above
-
-        if class_matches and level_matches:
-            item_with_score = {**item, "item_score": score_item(item, character_class, spec)}    #**item copies whole hellreaver dictionary over
-
-            matching_items.append(item_with_score)                                  #add item to list
-
+        if item_matches_filters(item, character_class, level, slot, source_type):
+            item_with_score = add_item_score(item, character_class, spec)
+            matching_items.append(item_with_score)
             
-    matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) sort gear by score. reverse=true highest score comes first
+    matching_items = sort_items_by_score(matching_items)
+    #matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) sort gear by score. reverse=true highest score comes first
 
-    best_gear={}
-
-    for item in maching_items:
-        slot = item["slot"]
-
-        if slot not in best_gear:
-            best_gear[slot] = item
+    gear_by_slot = group_top_items_by_slot(matching_items, top_n)
+    source_type_counts = count_items_by_source_type(matching_items)
 
 
     return {
-        "character_class": character_class.title(),
-        "spec": spec,
-        "level": level,
-        "count": len(matching_items),
-        "recommended_items": matching_items
-    }
+    "character": {"class": character_class.title(), "spec": spec.title(),"level": level},
+    "filters": { "slot": slot,"source_type": source_type,"top_n_per_slot": top_n},
+    "summary": {"source_type_counts": source_type_counts},
+    "total_matching_items": len(matching_items),
+    "slots_returned": len(gear_by_slot),
+    "gear_by_slot": gear_by_slot
+}
 
-@app.get("/recommend-gear")
-def recommend_gear(
-    character_class: str,
-    level: int,
-    slot: str | None=None
-):
-    matching_items = []
-
-    for item in gear_items:
-        class_matches = character_class.title() in item["classes"]
-        level_matches = item["required_level"] <= level
-
-        if slot is not None:
-            slot_matches = item["slot"].lower() == slot.lower()
-        else:
-            slot_matches = True
-
-        if class_matches and level_matches and slot_matches:
-            
-            item_score = calculate_item_score(item, character_class)
-
-            item_with_score = {
-                **item,
-                "item_score": item_score
-            }
-
-            matching_items.append(item_with_score)
-
-    matching_items.sort(
-        key=lambda item: item["item_score"],                                #sorts to find highest scoring gear first
-        reverse=True
+@app.get("/gear-path")
+def get_gear_path(character_class: str, spec: str, level: int, slot: str | None = None, source_type: str | None = None, top_n_per_slot: int = 3):
+    return build_gear_path(
+        character_class=character_class,
+        spec=spec,
+        level=level,
+        slot=slot,
+        source_type=source_type,
+        top_n=top_n_per_slot                                                                        #how many items user wants in search 
     )
 
-    return {
-        "character_class": character_class.title(),
-        "level": level,
-        "slot": slot,
-        "count": len(matching_items),
-        "recommended_items": matching_items
-    }
+def get_available_slots():
+    return sorted(set(item["slot"] for item in gear_items))
 
-@app.get("/best-per-slot")
-def best_per_slot(character_class: str, level: int):
-    best_items = {}
+
+def get_available_source_types():
+    return sorted(set(item["source_type"] for item in gear_items))
+
+
+def get_available_classes():
+    classes = set()
 
     for item in gear_items:
-        class_matches = character_class.title() in item["classes"]
-        level_matches = item["required_level"] <= level
+        for character_class in item["classes"]:
+            classes.add(character_class)
 
-        if class_matches and level_matches:
-            item_score = calculate_item_score(item, character_class)
-            slot = item["slot"]
+    return sorted(classes)
 
-            item_with_score = {
-                **item,
-                "item_score": item_score
-            }
 
-            if slot not in best_items:
-                best_items[slot] = item_with_score
-            else:
-                current_best_score = best_items[slot]["item_score"]
+def get_available_stats():
+    stats = set()
 
-                if item_score > current_best_score:
-                    best_items[slot] = item_with_score
+    for item in gear_items:
+        for stat_name in item["stats"]:
+            stats.add(stat_name)
+
+    return sorted(stats) 
+
+def get_available_specs_by_class():
+    specs_by_class = {}
+
+    for class_name, class_specs in SPEC_STAT_WEIGHTS.items():
+        specs_by_class[class_name] = sorted(class_specs.keys())
+
+    return specs_by_class
+
+@app.get("/specs")
+def get_specs():
+    specs_by_class = get_available_specs_by_class()
 
     return {
-        "character_class": character_class.title(),
-        "level": level,
-        "count": len(best_items),
-        "best_gear": best_items
+        "count": len(specs_by_class),
+        "specs_by_class": specs_by_class
     }
+
+@app.get("/slots")
+def get_slots():
+    slots = get_available_slots()
+    #slots = sorted(set(item["slot"] for item in gear_items))                                #loops thru every item and grabs slot;use "set" to clean dupes
+                                                                                            #hellreaver=two hander
+    return {
+        "count": len(slots),
+        "slots": slots
+    }   
+
+@app.get("/source-types")                                                                       #same thing as function above, organize func liek dungeon/etc
+def get_source_types():                                                                         #hellreaver=dungeon
+    source_types = get_available_source_types()
+
+    return {
+        "count": len(source_types),
+        "source_types": source_types
+    }
+
+@app.get("/classes")
+def get_classes():
+    classes = get_available_classes()
+
+    return {
+        "count": len(classes),
+        "classes": sorted(classes)
+    }
+
+@app.get("/stats")
+def get_stats():
+    stats = get_available_stats()
+
+    return {
+        "count": len(stats),
+        "stats": sorted(stats)
+    }
+
+#@app.get("/best-per-slot")
+#def best_per_slot(character_class: str, level: int):
+#    best_items = {}
+#
+ #   for item in gear_items:
+  #      class_matches = character_class.title() in item["classes"]
+   #     level_matches = item["required_level"] <= level
+#
+ #       if class_matches and level_matches:
+  #          item_score = calculate_item_score(item, character_class)
+   #         slot = item["slot"]
+#
+ #           item_with_score = {
+  #              **item,
+   #        }
+#
+ #           if slot not in best_items:
+  #              best_items[slot] = item_with_score
+   #         else:
+    #            current_best_score = best_items[slot]["item_score"]
+#
+ #               if item_score > current_best_score:
+  #                  best_items[slot] = item_with_score
+#
+ #   return {
+  #      "character_class": character_class.title(),
+   #     "level": level,
+    #    "count": len(best_items),
+     #   "best_gear": best_items
+    #}
     
 
-
+#class_matches = character_class.title() in item["classes"]                  #title makes first letter cap, rest lowercase. Paladin=paladin
+        #level_matches = item["required_level"] <= level                             #these two lines create booleans/ stores true if class matches above
+        #slot_matches = slot is None or item["slot"].lower() == slot.lower()
+        #source_matches = source_type is None or item['source_type'].lower == source_type.lower()
+        #/if class_matches and level_matches:
+           # item_with_score = {**item, "item_score": score_item(item, character_class, spec)}    #**item copies whole hellreaver dictionary over
    
+#for item in matching_items:
+     #   item_slot = item["slot"]
+#
+ #       if item_slot not in gear_by_slot:
+  #          gear_by_slot[item_slot] = []
+#
+ #       if len(gear_by_slot[item_slot]) < top_n:
+  #          gear_by_slot[item_slot].append(item)
+
+  #@app.get("/recommend-gear")
+#def recommend_gear(
+#    character_class: str,
+#    level: int,
+#    slot: str | None=None
+#):

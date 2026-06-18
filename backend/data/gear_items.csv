@@ -2,3 +2,15 @@ id,name,slot,item_type,required_level,source_type,source_name,zone,classes,stren
 1,Hellreaver,Two-Hand,Polearm,60,Dungeon,Hellfire Ramparts,Hellfire Peninsula,"Warrior|Paladin|Hunter",23,33,21
 2,Fel Iron Plate Belt,Waist,Plate,58,Crafting,Blacksmithing,Outland,"Warrior|Paladin",18,18,0
 3,Expedition Scout's Epaulets,Shoulder,Mail,58,Quest,The Legion Reborn,Hellfire Peninsula,"Hunter|Shaman",0,22,15
+4,Blood Knight Girdle,Waist,Plate,60,Dungeon,Blood Furnace,Hellfire Peninsula,"Paladin|Warrior",25,20,10
+5,Blade of the Unyielding,One-Hand,Sword,58,Quest,The Path of Glory,Hellfire Peninsula,"Paladin|Warrior",16,12,8
+6,Honor Hold Favor,Trinket,Trinket,60,Quest,Overlord,Hellfire Peninsula,"Paladin|Warrior|Hunter|Shaman",0,20,12
+7,Light-Touched Breastplate,Chest,Plate,61,Quest,Helping the Cenarion Post,Hellfire Peninsula,"Paladin|Warrior",22,28,6
+8,Expedition Defender's Gauntlets,Hands,Plate,58,Quest,The Expedition's Champion,Hellfire Peninsula,"Paladin|Warrior",14,18,6
+9,Ravager's Cuffs,Wrist,Plate,59,Dungeon,Hellfire Ramparts,Hellfire Peninsula,"Paladin|Warrior",12,15,5
+10,Glory Bearer's Cloak,Back,Cloak,60,Quest,Honor the Fallen,Hellfire Peninsula,"Paladin|Warrior|Hunter",8,16,7
+11,Crusader's Mark,Ring,Ring,60,Quest,The Path of Glory,Hellfire Peninsula,"Paladin|Warrior",10,12,9
+12,Ironblade Knuckles,Hands,Plate,60,Crafting,Blacksmithing,Outland,"Paladin|Warrior",18,16,8
+13,Blood-Forged Warhelm,Head,Plate,61,Dungeon,Blood Furnace,Hellfire Peninsula,"Paladin|Warrior",24,24,11
+14,Avenger's Legplates,Legs,Plate,60,Quest,Overlord,Hellfire Peninsula,"Paladin|Warrior",21,25,9
+15,Templar's Battle Pendant,Neck,Neck,60,Quest,Helping the Cenarion Post,Hellfire Peninsula,"Paladin|Warrior|Shaman",12,15,10
