@@ -1,4 +1,4 @@
-FROM python:3.11-slim               #starts linux image
+FROM python:3.11-slim               #starts linux image up
 
 WORKDIR /app
 
