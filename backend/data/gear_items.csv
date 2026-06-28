@@ -14,3 +14,7 @@ id,name,slot,item_type,required_level,source_type,source_name,zone,classes,stren
 13,Blood-Forged Warhelm,Head,Plate,61,Dungeon,Blood Furnace,Hellfire Peninsula,"Paladin|Warrior",24,24,11
 14,Avenger's Legplates,Legs,Plate,60,Quest,Overlord,Hellfire Peninsula,"Paladin|Warrior",21,25,9
 15,Templar's Battle Pendant,Neck,Neck,60,Quest,Helping the Cenarion Post,Hellfire Peninsula,"Paladin|Warrior|Shaman",12,15,10
+16,Templar's Rest Boots,Feet,Plate,60,Quest,Zangarmarsh Quest,Zangarmarsh,Warrior|Paladin,16,18,7
+17,Avenger's Mark,Neck,Necklace,60,Quest,Hellfire Peninsula Quest,Hellfire Peninsula,Warrior|Paladin|Hunter|Shaman,10,12,9
+18,Lightwarden's Cloak,Back,Cloak,59,Quest,Hellfire Peninsula Quest,Hellfire Peninsula,Warrior|Paladin,8,15,5
+19,Hellfire Plate Legguards,Legs,Plate,58,Quest,The Path of Glory,Hellfire Peninsula,Paladin|Warrior,16,20,5

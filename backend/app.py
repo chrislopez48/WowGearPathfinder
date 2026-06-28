@@ -1,3 +1,4 @@
+#code --disable-extensions .
 #docker build -t wow-gear-api .         build the image(packaged app)
 #docker run -p 8000:8000 wow-gear-api   starts a container(the runnning app)
 #docker start/stop wow-api-container
@@ -264,7 +265,7 @@ def get_filters():
         "specs_by_class": get_available_specs_by_class()
     }
 
-def score_item(item: dict, character_class: str, spec: str) -> float:
+def score_item(item: dict, character_class: str, spec: str) -> float:               #5th stop. item actually gets scored here
     stats = item["stats"]
 
     class_name = character_class.title()
@@ -294,13 +295,14 @@ def count_items_by_source_type(items: list[dict]) -> dict:
 
     return source_counts
 
+                                                                        #third function we visit. just goes down check list of item and user url
 def item_matches_filters(item: dict, character_class: str, level: int, slot: str | None=None, source_type: str | None=None):
     class_matches = character_class.title() in item["classes"]
     level_matches = item["required_level"] <= level
     slot_matches = slot is None or item["slot"].lower() ==slot.lower()
     source_matches = source_type is None or item["source_type"].lower() == source_type.lower()
 
-    return class_matches and level_matches and slot_matches and source_matches
+    return class_matches and level_matches and slot_matches and source_matches      #returns just a singular item that passes all checks
 
 def group_top_items_by_slot(items: list[dict], top_n: int):
     gear_by_slot = {}
@@ -320,37 +322,57 @@ def sort_items_by_score(items: list[dict]) -> list[dict]:
     items.sort( key=lambda item: item["item_score"], reverse=True)
 
     return items
-def add_item_score(item: dict, character_class: str, spec: str) -> dict:
+
+def add_item_score(item: dict, character_class: str, spec: str) -> dict:       
     return {
         **item,
         "item_score": score_item(item, character_class, spec)
     }
+                                                                                #second funtion to start up
+
+def build_slot_summary(gear_by_slot: dict) -> dict:
+    slot_summary = {}
+
+    for slot, items in gear_by_slot.items():
+        best_item = items[0]
+
+        slot_summary[slot] = {
+            "items_found": len(items),
+            "best_item": best_item["name"],
+            "best_score": best_item["item_score"]
+        }
+
+    return slot_summary
 
 def build_gear_path(character_class: str, spec: str, level: int, slot: str | None=None, source_type: str | None = None, top_n: int = 3):                     #values turn into paladin, ret, 60
-    matching_items = []
+    matching_items = []                                                        #fill empty list with csv
 
     for item in gear_items:
         if item_matches_filters(item, character_class, level, slot, source_type):
-            item_with_score = add_item_score(item, character_class, spec)
+            item_with_score = add_item_score(item, character_class, spec)       #fourth stop. wnt from this func->filters func-> back here
             matching_items.append(item_with_score)
             
     matching_items = sort_items_by_score(matching_items)
     #matching_items.sort(key=lambda item: item["item_score"], reverse=True)     #people.sort(key=lambda: person["age"]) sort gear by score. reverse=true highest score comes first
 
     gear_by_slot = group_top_items_by_slot(matching_items, top_n)
+    slot_summary = build_slot_summary(gear_by_slot)
     source_type_counts = count_items_by_source_type(matching_items)
+    best_item_overall = matching_items[0] if matching_items else None
 
 
     return {
     "character": {"class": character_class.title(), "spec": spec.title(),"level": level},
     "filters": { "slot": slot,"source_type": source_type,"top_n_per_slot": top_n},
-    "summary": {"source_type_counts": source_type_counts},
+    "summary": {"source_type_counts": source_type_counts, "best_item_overall": best_item_overall, "slot_summary": slot_summary},
     "total_matching_items": len(matching_items),
     "slots_returned": len(gear_by_slot),
     "gear_by_slot": gear_by_slot
 }
 
-@app.get("/gear-path")
+
+                                                                                #function below "starting point" of project
+@app.get("/gear-path")                                                          #when user types into url, this is where it goes
 def get_gear_path(character_class: str, spec: str, level: int, slot: str | None = None, source_type: str | None = None, top_n_per_slot: int = 3):
     return build_gear_path(
         character_class=character_class,
