@@ -21,7 +21,7 @@ The API returns matching gear grouped by equipment slot and sorted by item score
 ## Tech Stack
 
 * Python
-* FastAPI
+* FastAPIf
 * Uvicorn
 * CSV data storage
 * Docker
@@ -253,6 +253,8 @@ http://127.0.0.1:8000/docs
 * Deploy the backend to AWS
 * Explore EC2, ECS, Lambda, or API Gateway options
 * Add cloud-based logging and monitoring
+
+We deployed a fastAPI app as a container to AWS. I built the app into a docker image and then pushed it to ECR. We then used Amazon ECS and Fargate to run the container in the cloud. ECS keeps one task running active so the API doesnt only run locally. Copying the task's IP from AWS worked.
 
 ### Phase 5: Portfolio Improvements
 
