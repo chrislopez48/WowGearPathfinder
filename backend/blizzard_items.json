@@ -1,0 +1,18 @@
+[
+    {
+        "id": 24044,
+        "name": "Hellreaver",
+        "slot": "Two-Hand",
+        "item_type": "Polearm",
+        "required_level": 60,
+        "item_level": 85
+    },
+    {
+        "id": 19019,
+        "name": "Thunderfury, Blessed Blade of the Windseeker",
+        "slot": "One-Hand",
+        "item_type": "Sword",
+        "required_level": 60,
+        "item_level": 80
+    }
+]

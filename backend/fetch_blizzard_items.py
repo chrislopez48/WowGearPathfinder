@@ -1,4 +1,5 @@
 import os
+import json
 
 import requests                                        
                                                             #lets python reach web APIs over HTTP
@@ -23,9 +24,9 @@ response = requests.post(
     timeout=30,
 )                                                           #http post request sending auth to blizz
 
-response.raise_for_status()
+response.raise_for_status()                                 #show error if request fails
 
-token_data = response.json()
+token_data = response.json()                                #json turns into python dictionary
 
 print("Authentication successful!")
 print("Access token received:", bool(token_data.get("access_token")))
@@ -33,28 +34,57 @@ print("Token expires in:", token_data.get("expires_in"), "seconds")
 
 access_token = token_data["access_token"]
 
-item_id = 24044  # Hellreaver
+#item_id = 24044  # Hellreaver
 
-item_url = f"https://us.api.blizzard.com/data/wow/item/{item_id}"
+item_ids = [
+    24044,  # Hellreaver
+    19019,  # Thunderfury
+]
 
-item_response = requests.get(
-    item_url,
-    headers={
-        "Authorization": f"Bearer {access_token}"
-    },
-    params={
-        "namespace": "static-classic-us",
-        "locale": "en_US",
-    },
-    timeout=30,
-)
+def fetch_item(item_id, access_token):
+    # Build the Blizzard API URL for the selected item.
+    item_url = f"https://us.api.blizzard.com/data/wow/item/{item_id}"
 
-item_response.raise_for_status()
+    # Request the item's data from Blizzard.
+    item_response = requests.get(
+        item_url,
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+        params={
+            "namespace": "static-classic-us",
+            "locale": "en_US",
+        },
+        timeout=30,
+    )
 
-item_data = item_response.json()
+    item_response.raise_for_status()
 
-print("\nItem request successful!")
-print("Item ID:", item_data.get("id"))
-print("Item name:", item_data.get("name"))
-print("Required level:", item_data.get("required_level"))
-print("Item level:", item_data.get("level"))
+    item_data = item_response.json()
+
+    return {
+        "id": item_data.get("id"),
+        "name": item_data.get("name"),
+        "slot": item_data.get("inventory_type", {}).get("name"),
+        "item_type": item_data.get("item_subclass", {}).get("name"),
+        "required_level": item_data.get("required_level"),
+        "item_level": item_data.get("level"),
+    }
+
+items = []
+
+for item_id in item_ids:
+    try:
+        trimmed_item = fetch_item(item_id, access_token)
+        items.append(trimmed_item)
+        print("Fetched item:", trimmed_item.get("name"))
+    
+    except requests.RequestException as error:
+        print(f"Failed to fetch item {item_id}: {error}")
+
+with open("backend/blizzard_items.json", "w") as item_file:
+    json.dump(items, item_file, indent=4)
+
+
+print("\nItems saved:", len(items))
+print("Items saved to backend/blizzard_items.json")
