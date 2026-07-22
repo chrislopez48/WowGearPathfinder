@@ -4,15 +4,62 @@
         "name": "Hellreaver",
         "slot": "Two-Hand",
         "item_type": "Polearm",
+        "item_class": "Weapon",
         "required_level": 60,
-        "item_level": 85
+        "item_level": 85,
+        "quality": "Rare",
+        "binding": "Binds when picked up",
+        "unique": null,
+        "durability": 100,
+        "is_equippable": true,
+        "stats": {
+            "strength": 30,
+            "stamina": 27,
+            "crit_rating": 25
+        },
+        "weapon": {
+            "minimum_damage": 75,
+            "maximum_damage": 113,
+            "damage_type": "Physical",
+            "attack_speed": 3.4,
+            "dps": 27.647058
+        },
+        "armor": null,
+        "spells": []
     },
     {
         "id": 19019,
         "name": "Thunderfury, Blessed Blade of the Windseeker",
         "slot": "One-Hand",
         "item_type": "Sword",
+        "item_class": "Weapon",
         "required_level": 60,
-        "item_level": 80
+        "item_level": 80,
+        "quality": "Legendary",
+        "binding": "Binds when picked up",
+        "unique": "Unique",
+        "durability": 130,
+        "is_equippable": true,
+        "stats": {
+            "agility": 5,
+            "stamina": 8,
+            "fire_resistance": 8,
+            "nature_resistance": 9
+        },
+        "weapon": {
+            "minimum_damage": 87,
+            "maximum_damage": 163,
+            "damage_type": "Physical",
+            "attack_speed": 1.9,
+            "dps": 77.89473
+        },
+        "armor": null,
+        "spells": [
+            {
+                "id": 21992,
+                "name": "Thunderfury",
+                "description": "Chance on hit: Blasts your enemy with lightning, dealing 300 Nature damage and then jumping to additional nearby enemies.  Each jump reduces that victim's Nature resistance by 25. Affects 5 targets. Your primary target is also consumed by a cyclone, slowing its attack speed by 20% for 12 sec."
+            }
+        ]
     }
 ]

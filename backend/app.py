@@ -2,9 +2,13 @@
 #docker build -t wow-gear-api .         build the image(packaged app)
 #docker run -p 8000:8000 wow-gear-api   starts a container(the runnning app)
 #docker start/stop wow-api-container
+#python3 backend/....
 from fastapi import FastAPI
 from pydantic import BaseModel
 from pathlib import Path
+from fastapi import Query
+
+import json
 
 import csv
 
@@ -171,6 +175,158 @@ SPEC_STAT_WEIGHTS = {
         },
     },
 }
+
+def load_blizzard_items():
+                            #convert json into python objects
+    blizzard_items_file = Path(__file__).parent / "blizzard_items.json"
+
+    try:
+        with open(blizzard_items_file, "r") as item_file:
+            items = json.load(item_file)
+
+    except FileNotFoundError:
+        print(f"Blizzard item file was not found: {blizzard_items_file}")
+        return []
+
+    except json.JSONDecodeError as error:
+        print(f"Blizzard item file contains invalid JSON: {error}")
+        return []
+
+    if not isinstance(items, list):
+        print("blizzard_items.json must contain a JSON list.")
+        return []
+
+    return items
+
+def score_blizzard_item(item, character_class, spec):
+    stats = item.get("stats", {})
+
+    if character_class.lower() == "paladin" and spec.lower() == "ret":
+        weights = {
+            "strength": 2.0,
+            "stamina": 1.0,
+            "crit_rating": 1.5,
+            "agility": 0.5,
+        }
+    else:
+        weights = {}
+
+    item_score = 0
+
+    for stat_name, stat_value in stats.items():
+        stat_weight = weights.get(stat_name, 0)
+        item_score += stat_value * stat_weight
+
+    return item_score
+
+def group_blizzard_items_by_slot(items, top_n_per_slot=3):
+    grouped_items = {}
+
+    for item in items:
+        slot = item.get("slot", "Unknown")
+
+        if slot not in grouped_items:
+            grouped_items[slot] = []
+
+        if len(grouped_items[slot]) < top_n_per_slot:
+            grouped_items[slot].append(item)
+
+    return grouped_items
+
+def build_blizzard_gear_path(
+    character_class,
+    spec,
+    level,
+    slot=None,
+    top_n_per_slot=3,
+):
+    # Load the Blizzard items saved in blizzard_items.json.
+    items = load_blizzard_items()
+
+    scored_items = []
+
+    for item in items:
+        # Skip anything that cannot be equipped.
+        if not item.get("is_equippable", False):
+            continue
+
+        required_level = item.get("required_level", 0)
+        item_slot = item.get("slot", "")
+
+        # Skip items above the character's level.
+        if required_level > level:
+            continue
+
+        # Apply the optional slot filter.
+        if slot and item_slot.lower() != slot.lower():
+            continue
+
+        # Copy the item so we do not modify the original data.
+        scored_item = item.copy()
+
+        scored_item["item_score"] = score_blizzard_item(
+            item,
+            character_class,
+            spec,
+        )
+
+        scored_items.append(scored_item)
+
+    # Rank the matching items from highest to lowest score.
+    scored_items.sort(
+        key=lambda item: item["item_score"],
+        reverse=True,
+    )
+
+    best_item = scored_items[0] if scored_items else None
+
+    gear_by_slot = group_blizzard_items_by_slot(
+        scored_items,
+        top_n_per_slot,
+    )
+
+    return {
+        "character": {
+            "class": character_class,
+            "spec": spec,
+            "level": level,
+        },
+        "filters": {
+            "slot": slot,
+            "top_n_per_slot": top_n_per_slot,
+        },
+        "summary": {
+            "best_item_overall": best_item,
+        },
+        "total_matching_items": len(scored_items),
+        "slots_returned": len(gear_by_slot),
+        "gear_by_slot": gear_by_slot,
+    }
+
+@app.get("/blizzard-items")
+def get_blizzard_items():
+    items = load_blizzard_items()
+
+    return {
+        "count": len(items),
+        "items": items,
+    }
+
+@app.get("/blizzard-items/scored")
+def get_scored_blizzard_items(
+    character_class: str,
+    spec: str,
+    level: int,
+    slot: str | None = None,
+    top_n_per_slot: int = 3,
+):
+    return build_blizzard_gear_path(
+        character_class=character_class,
+        spec=spec,
+        level=level,
+        slot=slot,
+        top_n_per_slot=top_n_per_slot,
+    )
 
 @app.get("/")
 def root():
@@ -372,15 +528,20 @@ def build_gear_path(character_class: str, spec: str, level: int, slot: str | Non
 
 
                                                                                 #function below "starting point" of project
-@app.get("/gear-path")                                                          #when user types into url, this is where it goes
-def get_gear_path(character_class: str, spec: str, level: int, slot: str | None = None, source_type: str | None = None, top_n_per_slot: int = 3):
-    return build_gear_path(
+@app.get("/gear-path")
+def get_gear_path(
+    character_class: str,
+    spec: str,
+    level: int = Query(ge=1, le=70),
+    slot: str | None = None,
+    top_n_per_slot: int = Query(default=3, ge=1, le=10)
+):
+    return build_blizzard_gear_path(
         character_class=character_class,
         spec=spec,
         level=level,
         slot=slot,
-        source_type=source_type,
-        top_n=top_n_per_slot                                                                        #how many items user wants in search 
+        top_n_per_slot=top_n_per_slot,
     )
 
 def get_available_slots():
