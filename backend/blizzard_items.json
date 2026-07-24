@@ -61,5 +61,108 @@
                 "description": "Chance on hit: Blasts your enemy with lightning, dealing 300 Nature damage and then jumping to additional nearby enemies.  Each jump reduces that victim's Nature resistance by 25. Affects 5 targets. Your primary target is also consumed by a cyclone, slowing its attack speed by 20% for 12 sec."
             }
         ]
+    },
+    {
+        "id": 29908,
+        "name": "Rage Reaver",
+        "slot": "Two-Hand",
+        "item_type": "Axe",
+        "item_class": "Weapon",
+        "required_level": null,
+        "item_level": 81,
+        "quality": "Uncommon",
+        "binding": "Binds when picked up",
+        "unique": null,
+        "durability": 85,
+        "is_equippable": true,
+        "stats": {
+            "agility": 19,
+            "stamina": 44
+        },
+        "weapon": {
+            "minimum_damage": 75,
+            "maximum_damage": 114,
+            "damage_type": "Physical",
+            "attack_speed": 3.6,
+            "dps": 26.249998
+        },
+        "armor": null,
+        "spells": []
+    },
+    {
+        "id": 25979,
+        "name": "Flintlocke's Piloting Pants",
+        "slot": "Legs",
+        "item_type": "Plate",
+        "item_class": "Armor",
+        "required_level": null,
+        "item_level": 87,
+        "quality": "Uncommon",
+        "binding": "Binds when picked up",
+        "unique": null,
+        "durability": 85,
+        "is_equippable": true,
+        "stats": {
+            "strength": 21,
+            "stamina": 31,
+            "dodge_rating": 21
+        },
+        "weapon": null,
+        "armor": {
+            "value": 689,
+            "display": "689 Armor"
+        },
+        "spells": []
+    },
+    {
+        "id": 28042,
+        "name": "Regal Protectorate",
+        "slot": "Trinket",
+        "item_type": "Miscellaneous",
+        "item_class": "Armor",
+        "required_level": null,
+        "item_level": 88,
+        "quality": "Rare",
+        "binding": "Binds when picked up",
+        "unique": "Unique-Equipped",
+        "durability": null,
+        "is_equippable": true,
+        "stats": {
+            "dodge_rating": 26
+        },
+        "weapon": null,
+        "armor": null,
+        "spells": [
+            {
+                "id": 33668,
+                "name": "Tenacity",
+                "description": "Use: Increases maximum health by 900 for 15 sec. (5 Min Cooldown)"
+            }
+        ]
+    },
+    {
+        "id": 29917,
+        "name": "Landslide Buckler",
+        "slot": "Off Hand",
+        "item_type": "Shield",
+        "item_class": "Armor",
+        "required_level": null,
+        "item_level": 81,
+        "quality": "Uncommon",
+        "binding": "Binds when picked up",
+        "unique": null,
+        "durability": 55,
+        "is_equippable": true,
+        "stats": {
+            "stamina": 21,
+            "intellect": 11,
+            "spirit": 8
+        },
+        "weapon": null,
+        "armor": {
+            "value": 1855,
+            "display": "1,855 Armor"
+        },
+        "spells": []
     }
 ]

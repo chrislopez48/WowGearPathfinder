@@ -200,6 +200,7 @@ def load_blizzard_items():
 
 def score_blizzard_item(item, character_class, spec):
     stats = item.get("stats", {})
+    weapon = item.get("weapon") or {}
 
     if character_class.lower() == "paladin" and spec.lower() == "ret":
         weights = {
@@ -208,8 +209,10 @@ def score_blizzard_item(item, character_class, spec):
             "crit_rating": 1.5,
             "agility": 0.5,
         }
+        weapon_dps_weight = 1.0
     else:
         weights = {}
+        weapon_dps_weight = 0
 
     item_score = 0
 
@@ -217,7 +220,10 @@ def score_blizzard_item(item, character_class, spec):
         stat_weight = weights.get(stat_name, 0)
         item_score += stat_value * stat_weight
 
-    return item_score
+    weapon_dps = weapon.get("dps") or 0             #if not a wep, will be 0 regarldess
+    item_score += weapon_dps * weapon_dps_weight
+
+    return round(item_score, 2)
 
 def group_blizzard_items_by_slot(items, top_n_per_slot=3):
     grouped_items = {}
@@ -232,6 +238,64 @@ def group_blizzard_items_by_slot(items, top_n_per_slot=3):
             grouped_items[slot].append(item)
 
     return grouped_items
+
+def can_equip(item, character_class):
+    item_class = (item.get("item_class") or "").lower()
+    item_type = (item.get("item_type") or "").lower()
+    item_slot = (item.get("slot") or "").lower()
+    character_class = character_class.lower()
+
+    universal_slots = {
+        "neck",
+        "back",
+        "finger",
+        "trinket",
+    }
+
+    if item_slot in universal_slots:
+        return True
+    
+    if character_class == "paladin":
+        allowed_armor = {
+            "cloth",
+            "leather",
+            "mail",
+            "plate",
+            "shield",
+        }
+
+        allowed_weapons = {
+            "axe",
+            "mace",
+            "sword",
+            "polearm",
+        }
+
+        if item_class == "armor":
+            return item_type in allowed_armor
+
+        if item_class == "weapon":
+            return item_type in allowed_weapons
+
+        return False
+
+    return True
+
+def fits_spec(item, character_class, spec):
+    item_slot = (item.get("slot") or "").lower()
+    character_class = character_class.lower()
+    spec = spec.lower()
+
+    if character_class == "paladin" and spec == "ret":
+        blocked_slots = {
+            "off hand",
+            "shield",
+        }
+
+        if item_slot in blocked_slots:
+            return False
+
+    return True
 
 def build_blizzard_gear_path(
     character_class,
@@ -250,8 +314,14 @@ def build_blizzard_gear_path(
         if not item.get("is_equippable", False):
             continue
 
-        required_level = item.get("required_level", 0)
-        item_slot = item.get("slot", "")
+        if not can_equip(item, character_class):
+            continue
+        
+        if not fits_spec(item, character_class, spec):
+            continue
+
+        required_level = item.get("required_level") or 0
+        item_slot = item.get("slot") or ""
 
         # Skip items above the character's level.
         if required_level > level:
