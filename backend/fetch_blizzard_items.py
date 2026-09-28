@@ -42,7 +42,7 @@ def load_item_ids():                        #calls json with item ids instead of
             print(f"Item ID file was not found: {item_ids_file}")
             return []
 
-    except json.JSONecodeError as error:
+    except json.JSONDecodeError as error:
             print(f"Item ID file contains invalid JSON: {error}")
             return []
     
