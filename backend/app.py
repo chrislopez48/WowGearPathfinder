@@ -239,6 +239,200 @@ def group_blizzard_items_by_slot(items, top_n_per_slot=3):
 
     return grouped_items
 
+CLASS_EQUIPMENT_RULES = {
+    "paladin": {
+        "armor": {
+            "cloth",
+            "leather",
+            "mail",
+            "plate",
+            "shield",
+        },
+        "weapons": {
+            "axe",
+            "mace",
+            "sword",
+            "polearm",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+        },
+    },
+
+    "warrior": {
+        "armor": {
+            "cloth",
+            "leather",
+            "mail",
+            "plate",
+            "shield",
+        },
+        "weapons": {
+            "axe",
+            "mace",
+            "sword",
+            "polearm",
+            "dagger",
+            "fist weapon",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+        },
+    },
+
+    "druid": {
+        "armor": {
+            "cloth",
+            "leather",
+        },
+        "weapons": {
+            "mace",
+            "dagger",
+            "staff",
+            "polearm",
+            "fist weapon",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+        },
+    },
+
+    "hunter": {
+        "armor": {
+            "cloth",
+            "leather",
+            "mail",
+        },
+        "weapons": {
+            "axe",
+            "sword",
+            "dagger",
+            "staff",
+            "polearm",
+            "fist weapon",
+            "bow",
+            "crossbow",
+            "gun",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+            "ranged",
+        },
+    },
+
+    "mage": {
+        "armor": {
+            "cloth",
+        },
+        "weapons": {
+            "sword",
+            "dagger",
+            "staff",
+            "wand",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+            "ranged",
+        },
+    },
+
+    "priest": {
+        "armor": {
+            "cloth",
+        },
+        "weapons": {
+            "mace",
+            "dagger",
+            "staff",
+            "wand",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+            "ranged",
+        },
+    },
+
+    "rogue": {
+        "armor": {
+            "cloth",
+            "leather",
+        },
+        "weapons": {
+            "sword",
+            "mace",
+            "dagger",
+            "fist weapon",
+            "bow",
+            "crossbow",
+            "gun",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "main hand",
+            "off hand",
+            "ranged",
+        },
+    },
+
+    "shaman": {
+        "armor": {
+            "cloth",
+            "leather",
+            "mail",
+            "shield",
+        },
+        "weapons": {
+            "axe",
+            "mace",
+            "dagger",
+            "staff",
+            "fist weapon",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+        },
+    },
+
+    "warlock": {
+        "armor": {
+            "cloth",
+        },
+        "weapons": {
+            "sword",
+            "dagger",
+            "staff",
+            "wand",
+        },
+        "weapon_slots": {
+            "one-hand",
+            "two-hand",
+            "main hand",
+            "off hand",
+            "ranged",
+        },
+    },
+}
+
 def can_equip(item, character_class):
     item_class = (item.get("item_class") or "").lower()
     item_type = (item.get("item_type") or "").lower()
@@ -254,46 +448,150 @@ def can_equip(item, character_class):
 
     if item_slot in universal_slots:
         return True
-    
-    if character_class == "paladin":
-        allowed_armor = {
-            "cloth",
-            "leather",
-            "mail",
-            "plate",
-            "shield",
-        }
 
-        allowed_weapons = {
-            "axe",
-            "mace",
-            "sword",
-            "polearm",
-        }
+    class_rules = CLASS_EQUIPMENT_RULES.get(character_class)
 
-        if item_class == "armor":
-            return item_type in allowed_armor
-
-        if item_class == "weapon":
-            return item_type in allowed_weapons
-
+    if not class_rules:
         return False
 
-    return True
+    if item_class == "armor":
+        return item_type in class_rules["armor"]
+
+    if item_class == "weapon":
+        return (
+            item_type in class_rules["weapons"]
+            and item_slot in class_rules["weapon_slots"]
+        )
+
+    return False
+
+def explain_item_eligibility(item, character_class, spec):
+    reasons = []
+
+    if not item.get("is_equippable", False):
+        reasons.append("Item is not equippable.")
+        return {
+            "allowed": False,
+            "reasons": reasons,
+        }
+
+    if not can_equip(item, character_class):
+        reasons.append("Class cannot equip this item.")
+        return {
+            "allowed": False,
+            "reasons": reasons,
+        }
+
+    if not fits_spec(item, character_class, spec):
+        reasons.append("Item does not fit this spec.")
+        return {
+            "allowed": False,
+            "reasons": reasons,
+        }
+
+    reasons.append("Item passed all equipment checks.")
+
+    return {
+        "allowed": True,
+        "reasons": reasons,
+    }
+SPEC_EQUIPMENT_RULES = {
+    "paladin": {
+        "ret": {
+            "blocked_slots": {
+                "off hand",
+            },
+            "required_weapon_slot": "two-hand",
+        },
+
+        "prot": {
+            "blocked_weapon_slots": {
+                "two-hand",
+            },
+        },
+
+        "holy": {
+            "blocked_weapon_slots": {
+                "two-hand",
+            },
+        },
+    },
+
+    "warrior": {
+        "arms": {
+            "blocked_slots": {
+                "off hand",
+            },
+            "required_weapon_slot": "two-hand",
+        },
+
+        "prot": {
+            "blocked_weapon_slots": {
+                "two-hand",
+            },
+        },
+    },
+    "mage": {
+        "fire": {},
+        "frost": {},
+    },
+
+    "priest": {
+        "holy": {},
+        "shadow": {},
+    },
+}
 
 def fits_spec(item, character_class, spec):
     item_slot = (item.get("slot") or "").lower()
+    item_class = (item.get("item_class") or "").lower()
+
     character_class = character_class.lower()
     spec = spec.lower()
 
-    if character_class == "paladin" and spec == "ret":
-        blocked_slots = {
-            "off hand",
-            "shield",
-        }
+    class_rules = SPEC_EQUIPMENT_RULES.get(character_class)
+    
+    if not class_rules:
+        return True
 
-        if item_slot in blocked_slots:
-            return False
+    spec_rules = class_rules.get(spec)
+
+    if not spec_rules:
+        return True
+
+    blocked_slots = spec_rules.get("blocked_slots", set())
+
+    if item_slot in blocked_slots:
+        return False
+
+    blocked_weapon_slots = spec_rules.get("blocked_weapon_slots", set(),)
+
+    if (
+        item_class == "weapon"
+        and item_slot in blocked_weapon_slots
+    ):
+        return False
+
+    required_weapon_slot = spec_rules.get(
+        "required_weapon_slot"
+    )
+
+    if (
+        item_class == "weapon"
+        and required_weapon_slot
+        and item_slot != required_weapon_slot
+    ):
+        return False
+
+    return True
+    
+    
+def can_character_use_item(item, character_class, spec):
+    if not can_equip(item, character_class):
+        return False
+
+    if not fits_spec(item, character_class, spec):
+        return False
 
     return True
 
@@ -314,10 +612,7 @@ def build_blizzard_gear_path(
         if not item.get("is_equippable", False):
             continue
 
-        if not can_equip(item, character_class):
-            continue
-        
-        if not fits_spec(item, character_class, spec):
+        if not can_character_use_item(item, character_class, spec):
             continue
 
         required_level = item.get("required_level") or 0
@@ -380,6 +675,56 @@ def get_blizzard_items():
     return {
         "count": len(items),
         "items": items,
+    }
+
+@app.get("/blizzard-item-values")
+def get_blizzard_item_values():
+    items = load_blizzard_items()
+
+    item_classes = set()
+    item_types = set()
+    slots = set()
+
+    for item in items:
+        item_classes.add(item.get("item_class"))
+        item_types.add(item.get("item_type"))
+        slots.add(item.get("slot"))
+
+    return {
+        "item_classes": sorted(item_classes),
+        "item_types": sorted(item_types),
+        "slots": sorted(slots),
+    }
+
+@app.get("/blizzard-item-eligibility")
+def get_blizzard_item_eligibility(
+    character_class: str,
+    spec: str,
+):
+    items = load_blizzard_items()
+    results = []
+
+    for item in items:
+        eligibility = explain_item_eligibility(
+            item,
+            character_class,
+            spec,
+        )
+
+        results.append({
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "slot": item.get("slot"),
+            "item_type": item.get("item_type"),
+            "allowed": eligibility["allowed"],
+            "reasons": eligibility["reasons"],
+        })
+
+    return {
+        "character_class": character_class,
+        "spec": spec,
+        "count": len(results),
+        "items": results,
     }
 
 @app.get("/blizzard-items/scored")
