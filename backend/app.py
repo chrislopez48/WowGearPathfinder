@@ -202,26 +202,44 @@ def score_blizzard_item(item, character_class, spec):
     stats = item.get("stats", {})
     weapon = item.get("weapon") or {}
 
-    if character_class.lower() == "paladin" and spec.lower() == "ret":
-        weights = {
-            "strength": 2.0,
-            "stamina": 1.0,
-            "crit_rating": 1.5,
-            "agility": 0.5,
-        }
-        weapon_dps_weight = 1.0
-    else:
-        weights = {}
-        weapon_dps_weight = 0
+    class_name = character_class.title()
+    spec_name = spec.title()
+
+    class_specs = SPEC_STAT_WEIGHTS.get(class_name, {})
+    weights = class_specs.get(spec_name, {})
 
     item_score = 0
 
+    stat_name_map = {
+    "dodge_rating": "dodge",
+    "parry_rating": "parry",
+    "defense_rating": "defense",
+    "hit_rating": "hit",
+    "crit_rating": "crit",
+}
+
     for stat_name, stat_value in stats.items():
-        stat_weight = weights.get(stat_name, 0)
+        normalized_stat_name = stat_name_map.get(
+            stat_name,
+            stat_name,
+    )
+
+        stat_weight = weights.get(normalized_stat_name, 0)
         item_score += stat_value * stat_weight
 
-    weapon_dps = weapon.get("dps") or 0             #if not a wep, will be 0 regarldess
-    item_score += weapon_dps * weapon_dps_weight
+    weapon_dps = weapon.get("dps") or 0
+
+    if (
+        character_class.lower() == "paladin"
+        and spec.lower() == "ret"
+    ):
+        item_score += weapon_dps
+
+    if (
+        character_class.lower() == "warrior"
+        and spec.lower() == "arms"
+    ):
+        item_score += weapon_dps
 
     return round(item_score, 2)
 
